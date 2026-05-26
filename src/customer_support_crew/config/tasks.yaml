@@ -1,0 +1,18 @@
+triage_task:
+  description: >
+    Retrieve the information for the ticket key {ticket_id} using your ticket fetcher tool. Analyze the retrieved contents for categorical context, customer tone, and sentiment.
+  expected_output: >
+    A verified structured data schema containing ticket classifications and an emotional frustration score from 1 to 10.
+  agent: triage_agent
+
+resolution_task:
+  description: >
+    Review the triage analysis completed for ticket {ticket_id}.
+    Check the assigned frustration_score:
+    - If the frustration_score is 7 or higher, immediately flag this ticket as 'escalated_to_human' and compose detailed internal technical summary hand-off notes.
+    - If the frustration_score is lower than 7, resolve the ticket by drafting a comprehensive, friendly step-by-step resolution email template.
+  expected_output: >
+    A validated resolution schema indicating whether the ticket was successfully drafted or escalated, alongside the respective message payload.
+  agent: technical_resolver
+  context:
+    - triage_task
