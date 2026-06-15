@@ -45,7 +45,7 @@ class SupportOrchestrationCrew():
         return Task(
             config=self.tasks_config['resolution_task'],
             output_json=TechnicalResolutionResult, # Enforces strict output validation schema 
-            output_file='output/final_resolution_report.json'
+            output_file='output/final_resolution__{ticket_id}.json'
         )
 
     @crew
