@@ -1,0 +1,7 @@
+{
+  "ticket_id": "CREWAISUP-9",
+  "frustration_score": 10,
+  "resolution_status": "escalated_to_human",
+  "email_response_template": null,
+  "internal_escalation_notes": "Ticket ID: CREWAISUP-9\nCategory: Technical Issue\nUrgency/Impact: URGENT - Critical business impact. The mobile application is crashing on launch for the entire field service team (15 technicians) following a recent update. This is preventing access to work orders, causing significant operational disruption and reported financial losses.\nProblem Description: Mobile app fails to launch, crashing immediately upon execution for all affected users.\nSuspected Root Cause: Regression introduced by the latest mobile app update.\nAffected Users: All 15 field technicians.\nCurrent Status: Unresolved, blocking critical business operations.\nAction Required: Immediate investigation by Development/L3 support team to diagnose the cause of the app crash post-update. Prioritize a hotfix deployment or a temporary rollback to restore operational capability for the field service team.\nFrustration Score: 10 (High - indicates severe user frustration and business impact)."
+}

@@ -11,7 +11,7 @@ def run():
     os.makedirs('output', exist_ok=True)
 
     inputs = {
-        'ticket_id': 'CREWAISUP-1' # Replace with your active test key
+        'ticket_id': 'CREWAISUP-10' # Replace with your active test key
     }
     
     print(f"[*] Starting Support Crew Pipeline processing Jira ticket: {inputs['ticket_id']}...")

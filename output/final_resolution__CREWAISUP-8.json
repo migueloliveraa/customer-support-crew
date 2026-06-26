@@ -1,0 +1,7 @@
+{
+  "ticket_id": "CREWAISUP-8",
+  "frustration_score": 9,
+  "resolution_status": "escalated_to_human",
+  "email_response_template": null,
+  "internal_escalation_notes": "Customer reports being double-charged on their credit card for a subscription. Despite the charges, their account was downgraded to a 'Free trial' status. This indicates a critical billing system discrepancy and potential service interruption. Customer's frustration score is 9, indicating high dissatisfaction. Immediate action required to investigate the double charge, process a refund for the erroneous charge, and reinstate the correct subscription level. Please verify payment logs and account status promptly."
+}

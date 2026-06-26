@@ -1,0 +1,7 @@
+{
+  "ticket_id": "CREWAISUP-10",
+  "frustration_score": 10,
+  "resolution_status": "escalated_to_human",
+  "email_response_template": null,
+  "internal_escalation_notes": "Ticket CREWAISUP-10 - Access Issue. User is locked out of their master account due to a reported 'broken 2FA SMS system'. This is flagged as an emergency with a frustration score of 10. Immediate human intervention is required to verify the user's identity, restore account access, and investigate the 2FA SMS issue. Prioritize identity verification through secure alternative methods (e.g., security questions, email verification) before disabling 2FA. Assist the user in re-establishing a reliable 2FA method post-access restoration."
+}
