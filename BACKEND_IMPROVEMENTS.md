@@ -59,7 +59,7 @@ currently document the broken vocabulary as if it were the contract.
 
 ---
 
-### 2. `frustration_score` has no bounds and no calibration anchors
+### 2. ~~`frustration_score` has no bounds and no calibration anchors~~ — DONE (recalibration run still pending)
 
 **Where:** `config/schemas.py:8` (triage), `:14` (carried through resolution).
 
@@ -75,6 +75,20 @@ Either the sample is unusually angry or the scale is compressed toward the top �
 what you'd expect when a model is asked for a 1–10 emotion rating with no anchors. At a 70%
 escalation rate the triage step is not buying much: it's a slightly expensive pass-through to
 a human.
+
+**Resolved,** except for step 4. Both `frustration_score` declarations carry `ge=1, le=10`; the
+triage field description holds the tier ladder plus a severity floor (data loss, security
+breach, unauthorized charge, total outage never score below 7 however calm the wording);
+`tasks.yaml` points at those tiers instead of duplicating them; `score_rationale` was added
+(required at triage, optional on the resolution schema); and the resolver must now copy the
+score verbatim rather than re-derive it. `extract_result`'s fallback tiers were also routed
+through the schema, without which the bounds would only have applied to tier 1.
+
+**Still open — step 4, the recalibration measurement.** The anchors are expected to pull scores
+down, but that has not been measured: it needs live credentials and ten crew runs. Re-run
+`CREWAISUP-1` through `-10` and compare against the current **70% escalation rate (7/10, four
+at 9–10)**. If the rate has not moved, the ladder wording needs another pass — the threshold is
+the wrong dial to reach for. Record the new rate here when you have it.
 
 **Fix, in order of effort:**
 
@@ -184,7 +198,13 @@ it, and the web request hangs for as long as it takes. Set `max_iter` on both ag
 `max_rpm` on the `Crew`, and give the web path a wall-clock ceiling that surfaces as a
 `PipelineError`.
 
-### 8. `extract_result` can return a dict missing every field it promises
+### 8. `extract_result` can return a dict missing every field it promises — PARTLY DONE
+
+**Update:** the validation half landed with item 2 — tiers 2 and 3 now go through
+`TechnicalResolutionResult` and raise `PipelineError` on failure, which also covers the
+non-dict case below. What remains of this item is the surrounding hardening (clearer error
+text, deciding whether a partial result is ever worth rendering degraded).
+
 
 `pipeline.py:53-66` falls back to `json.loads(crew_output.raw)`, which succeeds for *any*
 valid JSON — including `{}` or a JSON array. The result is handed to `main.py` and the

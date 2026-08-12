@@ -41,6 +41,36 @@ Summarized, human-readable notes on what changed and why. Format follows
 
 ### Fixed
 
+- **`frustration_score` is now bounded and calibrated.** It is the number the whole pipeline
+  turns on — `>= 7` sends a ticket to a human — and it was a plain `int` whose only guidance
+  was the phrase "scaled integer from 1 to 10". Nothing stopped a model returning `0`, `85`,
+  or `-3`, and one adjective was the entire basis for deciding what a 4 means versus a 7. The
+  committed examples showed 7 of 10 tickets escalating, four at 9–10, which is the ceiling
+  compression an unanchored 1–10 rating produces. Both declarations in `config/schemas.py`
+  now carry `ge=1, le=10`, and the triage field description carries an explicit tier ladder
+  (1–3 informational, 4–6 blocked but civil, 7–8 anger or stated business impact, 9–10 churn
+  or legal threat) plus a severity floor: data loss, a security breach, an unauthorized
+  charge, or a total outage never scores below 7 regardless of how politely it is written,
+  which closes the calm-but-catastrophic blind spot. `config/tasks.yaml` points the agent at
+  those tiers rather than restating them, so there is one copy to keep current.
+- **The score is now copied rather than re-derived.** `TechnicalResolutionResult` re-stated
+  `frustration_score` with no instruction to preserve it, and the escalation decision is made
+  on the resolver's copy while triage's is discarded — so a resolver silently re-scoring a 9
+  down to a 5 would produce an auto-draft with no record that the number moved. The field
+  description and `resolution_task` prose now require a verbatim copy.
+- **New `score_rationale` field** — required at triage (quote the phrase that drove the score),
+  optional on the resolution schema so it carries through to `output/*.json` without
+  invalidating the existing examples. Miscalibration was previously invisible after the fact.
+- **`extract_result` now validates its fallback tiers.** Only tier 1 (`crew_output.pydantic`)
+  went through Pydantic; tiers 2 (`json_dict`) and 3 (`json.loads(.raw)`) returned raw dicts,
+  so the new bounds and the status enum would not have applied to anything arriving by those
+  paths. Both now go through `TechnicalResolutionResult` and raise `PipelineError` on failure.
+  **Behavior change:** degraded output that previously rendered as blanks now surfaces as a
+  visible error in the CLI and the console's "Run stopped" panel. This also closes the
+  validation half of backlog item 8.
+- **Gauge tolerates a bad score.** `web/templates/index.html` only marks cells for a score
+  within 1–10, so a stray value degrades to an empty bar instead of a misleadingly full one.
+
 - **`resolution_status` is now a closed enum** (`ResolutionStatus` in `config/schemas.py`)
   instead of a free-form `str`. It was a plain string whose only definition of the legal
   values lived in a `Field` description the model was free to ignore — and it did: the

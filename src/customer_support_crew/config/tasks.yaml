@@ -1,13 +1,16 @@
 triage_task:
   description: >
     Retrieve the information for the ticket key {ticket_id} using your ticket fetcher tool. Analyze the retrieved contents for categorical context, customer tone, and sentiment.
+    Score the customer's frustration strictly against the calibration tiers defined in the frustration_score field of your output schema, including its severity floor. Do not score on instinct, and do not drift upward: most routine tickets belong in the 1-6 range.
+    Fill score_rationale with a short justification that quotes the phrase from the ticket which drove the score.
   expected_output: >
-    A verified structured data schema containing ticket classifications and an emotional frustration score from 1 to 10.
+    A verified structured data schema containing ticket classifications, a frustration score calibrated against the tiers in the schema, and the quoted rationale for that score.
   agent: triage_agent
 
 resolution_task:
   description: >
     Review the triage analysis completed for ticket {ticket_id}.
+    Copy frustration_score and score_rationale from the triage analysis verbatim into your output. You are not the scorer: never recompute, round, or adjust that number, even if you disagree with it.
     Check the assigned frustration_score:
     - If the frustration_score is 7 or higher, immediately set resolution_status to exactly 'escalated_to_human' and compose detailed internal technical summary hand-off notes.
     - If the frustration_score is lower than 7, set resolution_status to exactly 'resolved_draft' and resolve the ticket by drafting a comprehensive, friendly step-by-step resolution email template.

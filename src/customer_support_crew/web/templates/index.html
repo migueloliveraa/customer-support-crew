@@ -53,6 +53,8 @@
     </section>
   {% elif result %}
     {% set score = result.get('frustration_score') %}
+    {# Only mark cells for an in-range score, so a stray value degrades to an empty bar. #}
+    {% set score_ok = score is not none and score is number and 1 <= score <= 10 %}
     <section class="stage verdict {{ 'is-escalated' if escalated else 'is-drafted' }}">
 
       <div class="verdict-head">
@@ -72,8 +74,8 @@
             <span class="gauge-cell
                          {{ 'is-hot' if step >= threshold else '' }}
                          {{ 'is-threshold' if step == threshold else '' }}
-                         {{ 'is-filled' if score is not none and step <= score else '' }}
-                         {{ 'is-mark' if step == score else '' }}">
+                         {{ 'is-filled' if score_ok and step <= score else '' }}
+                         {{ 'is-mark' if score_ok and step == score else '' }}">
               <b>{{ step }}</b>
             </span>
           {% endfor %}
