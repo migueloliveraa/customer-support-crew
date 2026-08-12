@@ -16,6 +16,7 @@ from customer_support_crew.pipeline import (
     ESCALATION_THRESHOLD,
     InvalidTicketKey,
     PipelineError,
+    ResolutionStatus,
     run_pipeline,
 )
 
@@ -30,6 +31,7 @@ def _render(request: Request, **context) -> HTMLResponse:
     context.setdefault("ticket_id", "")
     context.setdefault("result", None)
     context.setdefault("error", None)
+    context.setdefault("escalated", False)
     context.setdefault("threshold", ESCALATION_THRESHOLD)
     return templates.TemplateResponse(request, "index.html", context)
 
@@ -63,6 +65,7 @@ def resolve(request: Request, ticket_id: str = Form(...)) -> HTMLResponse:
         request,
         ticket_id=result.get("ticket_id", ticket_id),
         result=result,
+        escalated=result.get("resolution_status") == ResolutionStatus.ESCALATED_TO_HUMAN,
         raw_json=json.dumps(result, indent=2, ensure_ascii=False),
     )
 

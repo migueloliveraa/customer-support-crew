@@ -9,8 +9,9 @@ resolution_task:
   description: >
     Review the triage analysis completed for ticket {ticket_id}.
     Check the assigned frustration_score:
-    - If the frustration_score is 7 or higher, immediately flag this ticket as 'escalated_to_human' and compose detailed internal technical summary hand-off notes.
-    - If the frustration_score is lower than 7, resolve the ticket by drafting a comprehensive, friendly step-by-step resolution email template.
+    - If the frustration_score is 7 or higher, immediately set resolution_status to exactly 'escalated_to_human' and compose detailed internal technical summary hand-off notes.
+    - If the frustration_score is lower than 7, set resolution_status to exactly 'resolved_draft' and resolve the ticket by drafting a comprehensive, friendly step-by-step resolution email template.
+    The resolution_status field accepts only these two values, spelled exactly as shown. Never substitute a synonym such as 'resolved', 'drafted', or 'escalated'.
   expected_output: >
     A validated resolution schema indicating whether the ticket was successfully drafted or escalated, alongside the respective message payload.
   agent: technical_resolver

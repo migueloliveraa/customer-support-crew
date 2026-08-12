@@ -2,7 +2,7 @@
 import sys
 import warnings
 
-from customer_support_crew.pipeline import PipelineError, run_pipeline
+from customer_support_crew.pipeline import PipelineError, ResolutionStatus, run_pipeline
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
@@ -30,7 +30,7 @@ def run():
     print("=" * 40)
 
     score = result.get("frustration_score")
-    if result.get("resolution_status") == "escalated_to_human":
+    if result.get("resolution_status") == ResolutionStatus.ESCALATED_TO_HUMAN:
         print(f"[ALERT] High Frustration Level detected ({score}/10)!")
         print("[STATUS] Ticket Escalated to Human Management Override Layer.")
         print(f"[NOTES] {result.get('internal_escalation_notes') or 'No notes provided.'}")

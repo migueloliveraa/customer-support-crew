@@ -10,6 +10,11 @@ from dotenv import load_dotenv
 # time. Load .env here, before anything imports that module.
 load_dotenv()
 
+# Re-exported so the CLI and the web app have one import site for the outcome
+# vocabulary. Safe at module scope: schemas.py imports only pydantic, so it
+# cannot reintroduce the getenv race that keeps the crew import lazy below.
+from customer_support_crew.config.schemas import ResolutionStatus  # noqa: E402
+
 TICKET_KEY_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 
 # Display only. The rule that actually drives escalation is prose in
@@ -54,7 +59,8 @@ def extract_result(crew_output) -> dict:
     """crewAI populates one of three fields depending on how the model replied."""
     pydantic_result = getattr(crew_output, "pydantic", None)
     if pydantic_result is not None:
-        return pydantic_result.model_dump()
+        # mode="json" so ResolutionStatus lands as a plain string, not an enum member.
+        return pydantic_result.model_dump(mode="json")
 
     json_dict = getattr(crew_output, "json_dict", None)
     if json_dict is not None:
