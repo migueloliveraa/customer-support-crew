@@ -1,0 +1,377 @@
+/* Support Crew Console
+   Palette: cool steel ground, paper panels, one state-driven signal colour.
+   Type: monospace for anything the system produced, humanist sans for prose. */
+
+:root {
+  --ground: #dbe0e4;
+  --paper: #fbfcfd;
+  --ink: #171c21;
+  --muted: #67737c;
+  --rule: #b6c0c7;
+  --escalate: #b52d19;
+  --drafted: #17614f;
+  --signal: var(--muted);
+
+  --mono: ui-monospace, "Cascadia Mono", "Consolas", "SFMono-Regular", monospace;
+  --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+
+  --step: 0.9rem;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: clamp(1.5rem, 5vw, 4rem) 1.25rem 5rem;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.sheet {
+  max-width: 47rem;
+  margin: 0 auto;
+}
+
+/* ---- masthead ---------------------------------------------------------- */
+
+.masthead { margin-bottom: 2.25rem; }
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.masthead h1 {
+  margin: 0 0 0.6rem;
+  font-family: var(--mono);
+  font-size: clamp(1.6rem, 4.5vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.standfirst {
+  margin: 0;
+  max-width: 38rem;
+  color: var(--muted);
+}
+
+/* ---- console ----------------------------------------------------------- */
+
+.console {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding: 1.15rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+
+.field {
+  display: block;
+  flex: 1 1 15rem;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field input {
+  width: 100%;
+  padding: 0.65rem 0.7rem;
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+.field input::placeholder { color: #a9b4bb; }
+
+.field input:focus-visible,
+.raw summary:focus-visible,
+.console button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.console button {
+  padding: 0.7rem 1.3rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.console button:hover { background: #2c353d; }
+.console button:disabled { background: var(--muted); border-color: var(--muted); cursor: default; }
+
+.console-note {
+  margin: 0.6rem 0 2rem;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+/* ---- stages ------------------------------------------------------------ */
+
+.stage {
+  padding: 1.4rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--signal);
+  border-radius: 3px;
+}
+
+.empty {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+.empty p { margin: 0; }
+
+.notice { --signal: var(--escalate); }
+
+.notice-label {
+  margin: 0 0 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--escalate);
+}
+
+.notice-body { margin: 0; }
+
+/* ---- running relay ----------------------------------------------------- */
+
+.relay {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.relay-step {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.3rem 0;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.relay-dot {
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+}
+
+.relay-step.is-active { color: var(--ink); }
+
+.relay-step.is-active .relay-dot {
+  background: var(--ink);
+  border-color: var(--ink);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.relay-note {
+  margin: 0.9rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+@keyframes pulse {
+  50% { opacity: 0.25; }
+}
+
+/* ---- verdict ----------------------------------------------------------- */
+
+.verdict.is-escalated { --signal: var(--escalate); }
+.verdict.is-drafted { --signal: var(--drafted); }
+
+.verdict-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.stamp {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: clamp(1.1rem, 3.2vw, 1.45rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--signal);
+}
+
+.stamp-sub {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+/* ---- gauge: the signature element -------------------------------------- */
+
+.gauge {
+  margin: 1.4rem 0 0;
+}
+
+.gauge-caption {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.gauge-score {
+  font-size: 1.6rem;
+  letter-spacing: 0;
+  color: var(--signal);
+}
+
+.gauge-of { letter-spacing: 0.1em; }
+
+.gauge-track {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+}
+
+.gauge-cell {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 2.6rem;
+  background: #e7ebee;
+  border-radius: 1px;
+}
+
+.gauge-cell b {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: var(--muted);
+  padding-bottom: 0.2rem;
+}
+
+/* the escalation band, always visible so the threshold reads as a rule */
+.gauge-cell.is-hot { background: #f2ded9; }
+
+.gauge-cell.is-filled { background: var(--muted); }
+.gauge-cell.is-filled b { color: var(--paper); }
+.gauge-cell.is-filled.is-hot { background: var(--escalate); }
+
+/* the threshold reads as a hard edge on the first escalating step */
+.gauge-cell.is-threshold { box-shadow: inset 3px 0 0 var(--escalate); }
+.gauge-cell.is-mark { box-shadow: inset 0 0 0 2px var(--ink); }
+.gauge-cell.is-threshold.is-mark { box-shadow: inset 0 0 0 2px var(--ink), inset 3px 0 0 var(--escalate); }
+
+.gauge-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.6rem 0 0;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.gauge-threshold-key {
+  width: 0.85rem;
+  height: 0.6rem;
+  background: #f2ded9;
+  box-shadow: inset 2px 0 0 var(--escalate);
+}
+
+/* ---- payload ----------------------------------------------------------- */
+
+.payload {
+  margin-top: 1.6rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--rule);
+}
+
+.payload-label {
+  margin: 0 0 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.payload-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.payload-body--letter {
+  max-width: 36rem;
+  font-size: 1.02rem;
+}
+
+/* ---- raw --------------------------------------------------------------- */
+
+.raw { margin-top: 1.5rem; }
+
+.raw summary {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.raw pre {
+  margin: 0.7rem 0 0;
+  padding: 0.9rem;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  background: #eef1f3;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

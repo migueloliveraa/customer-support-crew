@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Support Crew Console</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="sheet">
+
+  <header class="masthead">
+    <p class="eyebrow">Tier-2 triage</p>
+    <h1>Support Crew Console</h1>
+    <p class="standfirst">
+      Two agents read the ticket: one scores how frustrated the customer is, one either drafts
+      the reply or hands it to a human.
+    </p>
+  </header>
+
+  <form class="console" method="post" action="/resolve" id="run-form">
+    <label class="field">
+      <span class="field-label">Jira ticket key</span>
+      <input
+        type="text"
+        name="ticket_id"
+        id="ticket-input"
+        value="{{ ticket_id }}"
+        placeholder="CREWAISUP-10"
+        autocomplete="off"
+        spellcheck="false"
+        autofocus
+        required>
+    </label>
+    <button type="submit" id="run-button">Run triage</button>
+  </form>
+  <p class="console-note">Runs live against Jira and both models. Expect about 30 seconds.</p>
+
+  <section class="stage" id="running" hidden aria-live="polite">
+    <ol class="relay">
+      <li class="relay-step is-active"><span class="relay-dot"></span>Reading the ticket, scoring frustration</li>
+      <li class="relay-step"><span class="relay-dot"></span>Drafting a reply or writing handover notes</li>
+    </ol>
+    <p class="relay-note">Keep this tab open. The page reloads with the verdict.</p>
+  </section>
+
+  <div id="stage-swap">
+
+  {% if error %}
+    <section class="stage notice">
+      <p class="notice-label">Run stopped</p>
+      <p class="notice-body">{{ error }}</p>
+    </section>
+  {% elif result %}
+    {% set score = result.get('frustration_score') %}
+    {# Only mark cells for an in-range score, so a stray value degrades to an empty bar. #}
+    {% set score_ok = score is not none and score is number and 1 <= score <= 10 %}
+    <section class="stage verdict {{ 'is-escalated' if escalated else 'is-drafted' }}">
+
+      <div class="verdict-head">
+        <p class="stamp">{{ 'Escalated to a human' if escalated else 'Reply drafted' }}</p>
+        <p class="stamp-sub">{{ result.get('ticket_id', ticket_id) }}</p>
+      </div>
+
+      <figure class="gauge">
+        <figcaption class="gauge-caption">
+          Frustration
+          <strong class="gauge-score">{{ score if score is not none else '—' }}</strong>
+          <span class="gauge-of">of 10</span>
+        </figcaption>
+        <div class="gauge-track" role="img"
+             aria-label="Frustration score {{ score }} of 10. Escalation begins at {{ threshold }}.">
+          {% for step in range(1, 11) %}
+            <span class="gauge-cell
+                         {{ 'is-hot' if step >= threshold else '' }}
+                         {{ 'is-threshold' if step == threshold else '' }}
+                         {{ 'is-filled' if score_ok and step <= score else '' }}
+                         {{ 'is-mark' if score_ok and step == score else '' }}">
+              <b>{{ step }}</b>
+            </span>
+          {% endfor %}
+        </div>
+        <p class="gauge-legend">
+          <span class="gauge-threshold-key"></span>
+          {{ threshold }} and above goes to a human
+        </p>
+      </figure>
+
+      {% if escalated %}
+        <div class="payload">
+          <p class="payload-label">Handover notes</p>
+          <p class="payload-body">{{ result.get('internal_escalation_notes') or 'The crew escalated without leaving notes.' }}</p>
+        </div>
+      {% else %}
+        <div class="payload">
+          <p class="payload-label">Draft reply to the customer</p>
+          <p class="payload-body payload-body--letter">{{ result.get('email_response_template') or 'The crew resolved the ticket without drafting a reply.' }}</p>
+        </div>
+      {% endif %}
+
+      <details class="raw">
+        <summary>Raw result</summary>
+        <pre>{{ raw_json }}</pre>
+      </details>
+    </section>
+  {% else %}
+    <section class="stage empty">
+      <p>Enter a ticket key to run the crew.</p>
+    </section>
+  {% endif %}
+
+  </div>
+</div>
+
+<script>
+  (function () {
+    var form = document.getElementById('run-form');
+    var running = document.getElementById('running');
+    var swap = document.getElementById('stage-swap');
+    var button = document.getElementById('run-button');
+    var input = document.getElementById('ticket-input');
+
+    form.addEventListener('submit', function () {
+      if (!input.value.trim()) { return; }
+      swap.hidden = true;
+      running.hidden = false;
+      button.disabled = true;
+      button.textContent = 'Running…';
+    });
+  })();
+</script>
+</body>
+</html>
