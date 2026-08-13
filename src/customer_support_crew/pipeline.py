@@ -51,6 +51,21 @@ def normalize_ticket_id(raw: str) -> str:
     return ticket_id
 
 
+def warm_up() -> None:
+    """Pay the ~10s crewai/litellm import cost up front instead of inside a request.
+
+    Importing crew.py drags in crewai, which drags in litellm, chromadb, openai and
+    pyvis — about ten seconds of module loading, all of it one-time per process. The
+    crew object itself builds in well under a tenth of a second, so this import is the
+    entire difference between a cold run and a warm one. Calling this is optional: the
+    lazy import in run_pipeline still works on its own, just slower the first time.
+
+    Same constraint as that lazy import — this must not run before load_dotenv() above,
+    which is why it lives in a function rather than at module scope.
+    """
+    from customer_support_crew.crew import SupportOrchestrationCrew  # noqa: F401
+
+
 def run_pipeline(ticket_id: str) -> dict:
     """Run triage + resolution for one ticket and return the resolution as a dict.
 

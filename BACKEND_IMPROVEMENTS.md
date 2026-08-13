@@ -59,7 +59,7 @@ currently document the broken vocabulary as if it were the contract.
 
 ---
 
-### 2. ~~`frustration_score` has no bounds and no calibration anchors~~ — DONE (recalibration run still pending)
+### 2. ~~`frustration_score` has no bounds and no calibration anchors~~ — DONE
 
 **Where:** `config/schemas.py:8` (triage), `:14` (carried through resolution).
 
@@ -84,11 +84,32 @@ breach, unauthorized charge, total outage never score below 7 however calm the w
 score verbatim rather than re-derive it. `extract_result`'s fallback tiers were also routed
 through the schema, without which the bounds would only have applied to tier 1.
 
-**Still open — step 4, the recalibration measurement.** The anchors are expected to pull scores
-down, but that has not been measured: it needs live credentials and ten crew runs. Re-run
-`CREWAISUP-1` through `-10` and compare against the current **70% escalation rate (7/10, four
-at 9–10)**. If the rate has not moved, the ladder wording needs another pass — the threshold is
-the wrong dial to reach for. Record the new rate here when you have it.
+**Recalibration measured** (re-ran `CREWAISUP-1` through `-10`, compared against the
+pre-calibration run at commit `7360994`):
+
+| | before | after |
+|---|---|---|
+| escalation rate | 70% (7/10) | **60% (6/10)** |
+| mean score | 7.4 | **6.1** |
+| scores at 9–10 | 5 | **3** |
+| scores in the 1–3 tier | 1 | **2** |
+
+Every score moved down or held; none moved up. One ticket crossed the threshold —
+`CREWAISUP-4` went 7 → 4 ("it's getting quite tedious to keep switching browsers", a civil
+report with a workaround), which is the 4–6 tier behaving as intended. The anchors are
+landing; the ladder does not need another pass.
+
+**Two residual observations, not defects:**
+
+- `CREWAISUP-5` and `-6` both sit at exactly 7 — the threshold — and both rationales justify
+  the score by *severity* ("impact on productivity", "It's an endless loop") rather than by
+  the tone signals the 7–8 tier actually names. Neither invokes the severity floor, which the
+  field description tells the model to state explicitly when the floor is what drove the
+  score. These two are the most consequential scores in the set (one point either way changes
+  who handles the ticket) resting on the thinnest justification. Watch them across runs.
+- The verbatim-copy rule cannot be verified from `output/`: only the resolver's copy is
+  persisted, so there is nothing to diff triage against. Confirming it would mean persisting
+  the triage output too — see item 13.
 
 **Fix, in order of effort:**
 

@@ -39,6 +39,26 @@ Summarized, human-readable notes on what changed and why. Format follows
   lives only at the CLI boundary, and the web app renders the failure.
 - **Dependencies**: added `fastapi`, `uvicorn`, `jinja2`, `python-multipart`, `python-dotenv`.
 
+### Changed
+
+- **The web console warms the crew import at startup**, so the first ticket is no longer
+  visibly slower than the rest. The cost was never the crew or the models: importing
+  `crew.py` pulls in crewai → litellm, chromadb, openai and pyvis, ~10s of module loading
+  measured on this machine, against 0.06s to actually build the crew. Because the import is
+  lazy (it has to be — `crew.py` reads `os.getenv` in its class body), the first `POST
+  /resolve` of each process paid all of it inside the request. `pipeline.warm_up()` now does
+  that import, and `web/app.py` calls it from a FastAPI lifespan hook on a daemon thread:
+  the server accepts connections immediately and the import finishes while the operator is
+  still typing. The CLI is unchanged — every `uv run run_crew` is a fresh process, so it has
+  no warm state to prime and nothing to overlap the wait with.
+
+- **Regenerated all ten `output/*.json` examples** on the calibrated schema, which closes the
+  measurement that was left open when the frustration-score anchors landed. Escalation rate
+  fell from 70% to 60%, mean score from 7.4 to 6.1, and scores in the 9–10 band from five to
+  three; every score moved down or held, none moved up, and one ticket (`CREWAISUP-4`, a civil
+  report with a workaround) crossed back below the threshold. Results and two residual
+  observations are recorded in `BACKEND_IMPROVEMENTS.md` item 2.
+
 ### Fixed
 
 - **crewAI's anonymous telemetry is now off by default.** Every crew run POSTed

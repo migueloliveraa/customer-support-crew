@@ -5,6 +5,8 @@ the request thread runs the crew live, and the same template renders the verdict
 """
 
 import json
+import threading
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request
@@ -18,11 +20,27 @@ from customer_support_crew.pipeline import (
     PipelineError,
     ResolutionStatus,
     run_pipeline,
+    warm_up,
 )
 
 BASE_DIR = Path(__file__).parent
 
-app = FastAPI(title="Support Crew Console")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Import the crew in the background while the operator is still typing.
+
+    Without this the first submit of the process pays ~10s of crewai/litellm import
+    on top of the run itself, which reads as "the first ticket is slow". On a daemon
+    thread so the server starts accepting connections immediately and Ctrl-C is not
+    held up; a submit arriving mid-import simply blocks on the same import lock and
+    is no worse off than before.
+    """
+    threading.Thread(target=warm_up, name="crew-warmup", daemon=True).start()
+    yield
+
+
+app = FastAPI(title="Support Crew Console", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
