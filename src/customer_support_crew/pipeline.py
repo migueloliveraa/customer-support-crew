@@ -11,6 +11,13 @@ from pydantic import ValidationError
 # time. Load .env here, before anything imports that module.
 load_dotenv()
 
+# crewAI ships anonymous OpenTelemetry tracing that POSTs to telemetry.crewai.com:4319
+# on every crew run. Export failures are caught, but the exporter retries with backoff
+# and logs a wall of "Transient error ... retrying" whenever a firewall or antivirus
+# blocks the connection. Opt out by default; setdefault so an explicit value in .env
+# (or the shell) still wins if someone wants the traces back.
+os.environ.setdefault("CREWAI_DISABLE_TELEMETRY", "true")
+
 # Re-exported so the CLI and the web app have one import site for the outcome
 # vocabulary. Safe at module scope: schemas.py imports only pydantic, so it
 # cannot reintroduce the getenv race that keeps the crew import lazy below.

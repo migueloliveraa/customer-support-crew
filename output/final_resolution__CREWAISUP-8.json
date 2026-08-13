@@ -1,7 +1,8 @@
 {
   "ticket_id": "CREWAISUP-8",
   "frustration_score": 9,
+  "score_rationale": "The phrase 'You took $600 of our money and locked us out of our own workspaces!' indicates a high level of frustration due to financial loss and service disruption.",
   "resolution_status": "escalated_to_human",
   "email_response_template": null,
-  "internal_escalation_notes": "Customer reports being double-charged on their credit card for a subscription. Despite the charges, their account was downgraded to a 'Free trial' status. This indicates a critical billing system discrepancy and potential service interruption. Customer's frustration score is 9, indicating high dissatisfaction. Immediate action required to investigate the double charge, process a refund for the erroneous charge, and reinstate the correct subscription level. Please verify payment logs and account status promptly."
+  "internal_escalation_notes": "Ticket CREWAISUP-8 requires immediate human intervention. The customer reports a critical billing issue: they were double-charged on their credit card, leading to a stated loss of $600, and their account was subsequently downgraded to a Free trial, which has locked them out of their workspaces. The frustration score is 9, reflecting the severe impact of financial loss and service disruption. The customer explicitly stated, 'You took $600 of our money and locked us out of our own workspaces!'.\n\n**Action Required:**\n1. Verify billing records for a double charge on the customer's account.\n2. Immediately restore full access to the customer's correct workspace and subscription level.\n3. Address the $600 financial discrepancy and initiate a refund or credit as appropriate.\n4. Contact the customer directly to provide an update and resolution plan."
 }

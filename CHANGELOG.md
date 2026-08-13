@@ -41,6 +41,15 @@ Summarized, human-readable notes on what changed and why. Format follows
 
 ### Fixed
 
+- **crewAI's anonymous telemetry is now off by default.** Every crew run POSTed
+  OpenTelemetry spans to `telemetry.crewai.com:4319`; when a firewall or antivirus blocks
+  that connection the exporter retries with backoff and floods the logs with
+  `Transient error ... retrying in 6.46s` / `Failed to export span batch`, which is noise
+  in the CLI and in the web console's server output. `pipeline.py` sets
+  `CREWAI_DISABLE_TELEMETRY` right after `load_dotenv()` — before the lazy `crew.py` import,
+  since crewAI reads the flag when it builds its `Telemetry` singleton — using `setdefault`
+  so an explicit value in `.env` or the shell still wins for anyone who wants the traces.
+
 - **`frustration_score` is now bounded and calibrated.** It is the number the whole pipeline
   turns on — `>= 7` sends a ticket to a human — and it was a plain `int` whose only guidance
   was the phrase "scaled integer from 1 to 10". Nothing stopped a model returning `0`, `85`,
