@@ -23,6 +23,10 @@ was a variant of that. Most of them are now closed.
 > Paths below are given relative to `src/customer_support_crew/`, with
 > `features/support_triage/` shortened to **`slice/`**. Historical writeups quote the old
 > paths where that is what the finding was about at the time.
+>
+> [`ARCHITECTURE.md`](ARCHITECTURE.md) describes the layout these items assume, and the
+> reasoning behind the seams several of the fixes below hang off — `ports.py`,
+> `domain/policy.py`, and the error-to-status mapping in particular.
 
 ---
 

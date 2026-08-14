@@ -24,7 +24,9 @@ crewai install
 [`CLAUDE.md`](CLAUDE.md) for the full list. Everything is read through
 `src/customer_support_crew/core/settings.py`.
 
-The crew lives in one vertical slice, `src/customer_support_crew/features/support_triage/`:
+The crew lives in one vertical slice, `src/customer_support_crew/features/support_triage/`.
+[`ARCHITECTURE.md`](ARCHITECTURE.md) explains how the pieces fit and why; the files you are
+most likely to want are:
 
 - `adapters/crewai_pipeline/config/agents.yaml` — agent roles, goals and backstories
 - `adapters/crewai_pipeline/config/tasks.yaml` — task descriptions and expected outputs

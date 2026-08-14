@@ -56,6 +56,24 @@ Summarized, human-readable notes on what changed and why. Format follows
   handlers no longer catch. The web router still catches for itself, because it owes the
   operator rendered HTML rather than JSON.
 
+- **Split the architecture specification out of `CLAUDE.md` into `ARCHITECTURE.md`.** After the
+  restructure `CLAUDE.md` was doing two jobs with different audiences and different lifetimes:
+  guardrails an assistant re-reads on every change, and a design document a teammate reads once
+  to understand the system. Mixing them meant scrolling past an ASCII tree to find the rules,
+  and past "never type 7 anywhere else" to follow the design.
+
+  `ARCHITECTURE.md` now holds the layout, the request flow, the ten design decisions stated as
+  *decision → why → where it lives* (the slice boundary, the ports, settings-on-call, the single
+  threshold, prompt-encoded escalation, field-descriptions-as-prompt, the DTO/domain split,
+  persistence outside the crew, the lazy import, the error mapping), the client surfaces, the
+  testing strategy, and a "where do I put a new X" table — the question a directory tree does
+  not answer.
+
+  `CLAUDE.md` keeps commands, environment and the changelog rule verbatim, and replaces the
+  spec with a fourteen-line `## Invariants` list: one imperative each, no reasoning, every entry
+  linking to the section of `ARCHITECTURE.md` that explains it. Nothing is duplicated and
+  nothing was dropped. `README.md` and `BACKEND_IMPROVEMENTS.md` link to the new file.
+
 - **`BACKEND_IMPROVEMENTS.md` re-pointed at the new layout.** The backlog cited files that no
   longer exist (`config/schemas.py`, `pipeline.py`, `tools/jira_tool.py`), which made it
   unusable as a working document. Every item now names its current home, with a one-time
