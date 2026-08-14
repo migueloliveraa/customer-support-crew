@@ -5,8 +5,84 @@ Summarized, human-readable notes on what changed and why. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Restructured `src/customer_support_crew/` into a vertical slice.** The layout was a
+  crewAI scaffold that had grown a web app, and three of its rules lived in `CLAUDE.md` as
+  things a human had to remember rather than as properties of the code: never import
+  `crew.py` at module scope (the class-body `LLM(...)` objects read `os.getenv` at import
+  time); keep `ESCALATION_THRESHOLD` in `pipeline.py` in sync by hand with the `7` typed
+  into the `resolution_task` prose; and always run from the repository root, because
+  `output_file` was a relative path. All three are now structural.
+
+  Everything about triaging a ticket lives in `features/support_triage/` — `domain/`
+  (the pydantic output schemas, the escalation policy, Jira-key validation), `ports.py`
+  (`TicketSource`, `TriagePipeline`, `ResolutionStore` as Protocols), `application/`
+  (`ResolveTicketUseCase`, the single entry point all three clients call), `adapters/`
+  (Jira, the filesystem, and the crewAI crew), and `api/` (the wire contract and its
+  router). One slice rather than separate `triage`/`resolution` slices: it is one business
+  capability, and a two-agent crew does not earn the ceremony. A second slice would be
+  additive — a new folder plus a router registration in `api/app.py`.
+
+  Outside the slice: `core/` holds settings, the error vocabulary and the LLM factory;
+  `api/` holds the FastAPI factory and the composition root; `web/` and `cli/` are clients.
+  `pipeline.py` and `config/schemas.py` are gone, their four jobs split across
+  `application/resolve_ticket.py`, `adapters/crewai_pipeline/result_mapper.py`,
+  `domain/policy.py` and `core/errors.py`.
+
+- **The escalation threshold is written down once**, in
+  `features/support_triage/domain/policy.py`. `tasks.yaml` now carries an
+  `{escalation_threshold}` placeholder that `CrewAITriagePipeline` fills from the
+  `kickoff()` inputs dict, and `domain/models.py` builds the severity-floor sentence of the
+  `frustration_score` description from the same constant. Prompt rule, score calibration,
+  console gauge and `GET /api/v1/config` now move together. Escalation is still
+  prompt-encoded — no Python branch was added — but the use case logs a warning when the
+  resolver's `resolution_status` disagrees with the threshold, since a silent
+  false-negative on escalation is the worst output this system can produce.
+
+- **Environment access is centralized in `core/settings.py`** (pydantic-settings), read when
+  `get_settings()` is first called rather than at import. The LLMs moved out of the
+  `SupportOrchestrationCrew` class body into the `@agent` methods, which removes the import
+  race entirely: any module may now be imported at module scope in any order. `warm_up()`
+  survives as what it always really was — a latency optimization for the first request — and
+  is reported by `/health` as `crew_warm`.
+
+- **Results are written by `FileResolutionStore`, not by the task's `output_file=`.** The
+  path is anchored to the repository root via `Settings.resolved_output_dir`, so runs from
+  any working directory land in the same place. Filenames and JSON shape are unchanged.
+
+- **Error handling moved to one place.** `InvalidTicketKey` → 422, `ResolutionNotFound` →
+  404 and `PipelineError` → 502 are registered as exception handlers in `api.app`; route
+  handlers no longer catch. The web router still catches for itself, because it owes the
+  operator rendered HTML rather than JSON.
+
+- **`BACKEND_IMPROVEMENTS.md` re-pointed at the new layout.** The backlog cited files that no
+  longer exist (`config/schemas.py`, `pipeline.py`, `tools/jira_tool.py`), which made it
+  unusable as a working document. Every item now names its current home, with a one-time
+  old→new mapping table at the top so the historical findings stay readable. Three items
+  closed in the process — item 3 (the escalation threshold now has a single source and a
+  post-hoc consistency check, with the open policy question answered: log the disagreement,
+  do not override the model), item 11 (test suite), item 12 (broken console scripts) — and
+  items 8 and 14 marked partly done. Item 5, fabricated verdicts from a failed Jira fetch, is
+  called out as the top remaining defect now that the schema-level ones are closed.
+
 ### Added
 
+- **JSON API at `/api/v1`** (`features/support_triage/api/`) — `POST /resolutions` runs the
+  crew live, `GET /resolutions/{ticket_id}` replays the stored result, `GET /config` exposes
+  the threshold and the legal status values, `GET /health` reports liveness and warm-up.
+  Added because the FastAPI app was HTML-only: nothing but the Jinja template could consume
+  a run. `api/dto.py` keeps the wire contract as its own models rather than re-exporting the
+  domain schemas — those schemas are *prompt* and will churn as calibration is tuned, while
+  the contract should be able to hold still and be versioned. That split is what makes it
+  safe to point a future SPA at `/api/v1`; the Jinja console stays as it is, no build step
+  and no external assets, and calls the use case directly rather than its own endpoint.
+- **A test suite** (`tests/`, plus a `dev` dependency group with pytest and httpx). The
+  ports are what make it possible: fakes in `tests/conftest.py` stand in for Jira, the crew
+  and the store, so the use case, the JSON API and the rendered console are all exercised
+  with no network and no API key. Covers the three-tier `CrewOutput` fallback including the
+  validation-failure path, key normalization, the policy-disagreement warning, and the
+  status-code mapping.
 - **Web console at `http://127.0.0.1:8000`** (`src/customer_support_crew/web/`) — FastAPI +
   Jinja templates, server-rendered, no build step and no external assets. One field for a
   Jira key, one button, and the resolution rendered as a verdict with a frustration gauge

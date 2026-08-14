@@ -1,8 +1,8 @@
 {
   "ticket_id": "CREWAISUP-3",
   "frustration_score": 2,
-  "score_rationale": "The customer states, 'Could you please send a copy of invoice #INV-2026-0388 to this email address?' indicating a routine request without signs of significant frustration.",
+  "score_rationale": "The customer states, 'Could you please send a copy of invoice #INV-2026-0388 to this email address?' indicating a routine request without any expressed frustration.",
   "resolution_status": "resolved_draft",
-  "email_response_template": "Subject: Your Requested Invoice: INV-2026-0388\n\nDear Customer,\n\nThank you for contacting us.\n\nWe understand you're requesting a copy of your invoice #INV-2026-0388. We've attached the PDF document to this email for your convenience.\n\nPlease find your March 2026 invoice, #INV-2026-0388, attached.\n\nIf you have any further questions or require additional assistance, please don't hesitate to reply to this email or visit our support center.\n\nBest regards,\n\n[Your Company Name] Support Team",
+  "email_response_template": "Subject: Your Requested Invoice Copy - #INV-2026-0388\n\nDear Customer,\n\nThank you for reaching out to us. We understand you're requesting a duplicate copy of your invoice for March 2026, specifically invoice number #INV-2026-0388.\n\nWe're happy to help! Please find the requested PDF copy of invoice #INV-2026-0388 attached to this email.\n\nIf you have any further questions or require additional assistance, please don't hesitate to reply to this email or contact our support team.\n\nBest regards,\n\n[Your Company Name] Support Team",
   "internal_escalation_notes": null
 }

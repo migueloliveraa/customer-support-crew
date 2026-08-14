@@ -20,28 +20,40 @@ crewai install
 ```
 ### Customizing
 
-**Add your `OPENAI_API_KEY` into the `.env` file**
+**Put your model and Jira credentials in `.env`** — see the Environment section of
+[`CLAUDE.md`](CLAUDE.md) for the full list. Everything is read through
+`src/customer_support_crew/core/settings.py`.
 
-- Modify `src/customer_support_crew/config/agents.yaml` to define your agents
-- Modify `src/customer_support_crew/config/tasks.yaml` to define your tasks
-- Modify `src/customer_support_crew/crew.py` to add your own logic, tools and specific args
-- Modify `src/customer_support_crew/main.py` to add custom inputs for your agents and tasks
+The crew lives in one vertical slice, `src/customer_support_crew/features/support_triage/`:
+
+- `adapters/crewai_pipeline/config/agents.yaml` — agent roles, goals and backstories
+- `adapters/crewai_pipeline/config/tasks.yaml` — task descriptions and expected outputs
+- `adapters/crewai_pipeline/crew.py` — LLMs, tools and output schemas wired together
+- `domain/models.py` — the structured output schemas (their field descriptions are prompt)
+- `domain/policy.py` — the escalation threshold, defined once and used everywhere
 
 ## Running the Project
 
-To kickstart your crew of AI agents and begin task execution, run this from the root folder of your project:
-
 ```bash
-$ crewai run
+uv run serve                  # web console + JSON API on http://127.0.0.1:8000
+uv run run_crew CREWAISUP-3   # one ticket from the CLI
+crewai run                    # same, on the default ticket
+uv run pytest                 # the test suite (no network, no API key)
 ```
 
-This command initializes the customer-support-crew Crew, assembling the agents and assigning them tasks as defined in your configuration.
-
-This example, unmodified, will run the create a `report.md` file with the output of a research on LLMs in the root folder.
+Each run writes `output/final_resolution__<TICKET_ID>.json` at the repository root,
+whatever directory you started from.
 
 ## Understanding Your Crew
 
-The customer-support-crew Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
+Two agents run sequentially. The triage agent fetches the Jira ticket and scores customer
+frustration 1–10 against the calibration tiers in its output schema; the Tier-2 resolver
+either drafts a customer reply or, at or above the escalation threshold, writes internal
+handover notes. Escalation is prompt-encoded — the rule is prose in `tasks.yaml`, and the
+number it uses comes from `domain/policy.py`.
+
+The JSON API (`POST /api/v1/resolutions`), the web console and the CLI are three clients of
+the same use case, `features/support_triage/application/resolve_ticket.py`.
 
 ## Support
 

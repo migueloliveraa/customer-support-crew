@@ -4,74 +4,113 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A [crewAI](https://crewai.com) crew that triages Atlassian Jira support tickets: it fetches a ticket, scores customer frustration 1–10, then either drafts a customer reply or escalates to a human. Python `>=3.10,<3.14`, managed with `uv`.
+A [crewAI](https://crewai.com) crew that triages Atlassian Jira support tickets: it fetches a ticket, scores customer frustration 1–10, then either drafts a customer reply or escalates to a human. It ships three clients over the same use case — a JSON API, a server-rendered web console, and a CLI. Python `>=3.10,<3.14`, managed with `uv`.
 
 ## Commands
 
 ```bash
 crewai install                    # lock + install dependencies (uv under the hood)
-uv run serve                      # web console on http://127.0.0.1:8000
+uv sync --group dev               # add pytest + httpx for the test suite
+uv run serve                      # console + API on http://127.0.0.1:8000
 crewai run                        # run the crew from the CLI on the default ticket
 uv run run_crew CREWAISUP-3       # CLI run on a specific ticket key
+uv run pytest                     # the suite; no network, no API key needed
 ```
 
-Run everything **from the repository root**: `output_file` in `crew.py` is a relative path, so the CWD decides where results land.
-
-There is no test suite (`tests/` is empty), no linter, and no build step. Note that `pyproject.toml` declares `train`, `replay`, and `test` console scripts pointing at `main:train`/`main:replay`/`main:test`, but **those functions do not exist in `main.py`** — those scripts (and `crewai train` / `crewai replay` / `crewai test`, which shell out to them) will fail until they are written.
+There is no linter and no build step. `crewai train` / `crewai replay` / `crewai test` are not supported — the console scripts they shell out to were removed, because the `main:train` / `main:replay` / `main:test` functions they pointed at never existed.
 
 ## Environment
 
-`.env` (gitignored) must define:
+`.env` (gitignored) is read by `core/settings.py`, which is the only module that touches the environment. It defines:
 
-- `TRIAGE_MODEL`, `RESOLVER_MODEL` — LiteLLM-style model strings (defaults `openai/gpt-4o-mini` and `gemini/gemini-2.0-flash`)
-- `OPENAI_API_KEY`, `GEMINI_API_KEY` — whichever the two models above need
-- `JIRA_SERVER_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` — Atlassian Cloud basic auth for the fetcher tool
+- `TRIAGE_MODEL`, `RESOLVER_MODEL` — LiteLLM-style model strings (defaults `openai/gpt-4o-mini` and `gemini/gemini-2.0-flash`); optional `TRIAGE_TEMPERATURE`, `RESOLVER_TEMPERATURE`
+- `OPENAI_API_KEY`, `GEMINI_API_KEY` — whichever the two models need. These are read by the provider SDKs from `os.environ`, which is why `settings.py` calls `load_dotenv()` as well as declaring typed fields
+- `JIRA_SERVER_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` — Atlassian Cloud basic auth
+- `OUTPUT_DIR` — optional; relative values resolve against the repository root, not the CWD
 
-The two `LLM(...)` objects in `crew.py` are **class-body attributes**, so `os.getenv` runs at import time. Env vars must be present before `SupportOrchestrationCrew` is imported. `pipeline.py` handles this for every caller: it calls `load_dotenv()` at module scope and imports `crew.py` *lazily inside* `run_pipeline()`. **Never add a top-level `from customer_support_crew.crew import ...` to `pipeline.py` or the web app** — that reintroduces the race, and it fails only when `.env` is the sole source of the keys.
+Settings are read when `get_settings()` is first *called*, never at import. There is no import-ordering hazard: any module may be imported at module scope, in any order.
 
 ## Architecture
 
-Sequential two-agent pipeline (`Process.sequential`), assembled by the `@CrewBase`-decorated `SupportOrchestrationCrew` in `src/customer_support_crew/crew.py`. Agent/task prose lives in YAML; Python only wires LLMs, tools, and output schemas.
+One vertical slice, `features/support_triage/`, with a ports-and-adapters interior. Everything outside the slice is either shared plumbing (`core/`) or a client of it (`api/`, `web/`, `cli/`).
 
 ```
-pipeline.run_pipeline(ticket_id)      ← CLI (main.py) and web (web/app.py) both call this
-  └─ triage_task     → triage_agent (triage_llm, JiraTicketFetcherTool)
-                       output_json = TicketTriageResult
-       └─ resolution_task → technical_resolver (resolver_llm)
-                       context = [triage_task]
-                       output_json = TechnicalResolutionResult
-                       output_file = output/final_resolution__{ticket_id}.json
+src/customer_support_crew/
+├── core/                    settings, error vocabulary, LLM factory — no crewAI, no domain
+├── features/support_triage/
+│   ├── domain/              models.py (pydantic output schemas), policy.py, ticket_key.py
+│   ├── ports.py             TicketSource, TriagePipeline, ResolutionStore (Protocols)
+│   ├── application/         resolve_ticket.py — the use case every client calls
+│   ├── adapters/
+│   │   ├── jira_ticket_source.py       TicketSource over Jira Cloud
+│   │   ├── file_resolution_store.py    ResolutionStore over output/*.json
+│   │   └── crewai_pipeline/            TriagePipeline via the crew
+│   │       ├── crew.py, tools.py, pipeline.py, result_mapper.py
+│   │       └── config/{agents,tasks}.yaml
+│   └── api/                 dto.py (wire contract), routes.py (/api/v1)
+├── api/                     app.py (factory, lifespan, error→status mapping), deps.py (composition root)
+├── web/                     routes.py + templates/ + static/ — the Jinja console
+└── cli/                     console.py
 ```
 
-Three files must stay in sync when changing behavior:
+Request flow, identical for all three clients:
 
-1. **`config/agents.yaml`** — role/goal/backstory, keyed by the method name of each `@agent` in `crew.py`.
-2. **`config/tasks.yaml`** — description/expected_output, keyed by each `@task` method name. Task descriptions interpolate `{ticket_id}` from the `inputs` dict passed to `kickoff()`. `resolution_task` declares `context: [triage_task]`, which is how triage output reaches the resolver.
-3. **`config/schemas.py`** — Pydantic models bound via `output_json=`, which force structured output.
+```
+POST /api/v1/resolutions  ─┐
+POST /resolve (HTML form) ─┼→ ResolveTicketUseCase.execute(ticket_id)
+uv run run_crew KEY       ─┘     ├─ normalize_ticket_id      (fails before spending an LLM call)
+                                 ├─ CrewAITriagePipeline.run  triage_task → resolution_task
+                                 │    └─ to_resolution()      3-tier CrewOutput fallback
+                                 ├─ policy disagreement check (logs; never overrides)
+                                 └─ FileResolutionStore.save
+```
 
-**The escalation threshold is prompt-encoded, not code-encoded.** `frustration_score >= 7` → `escalated_to_human` is stated only in the `resolution_task` description in `tasks.yaml`; no Python branch enforces it. Changing the threshold means editing that prose, not adding an `if`.
+### Rules that matter
 
-Scoring itself is likewise unconstrained: `TicketTriageResult.frustration_score` is a plain `int` whose `Field(description=...)` just says "scaled integer from 1 to 10" — there are no `ge`/`le` bounds and no per-tier calibration anchors, so the model is free to return out-of-range values. Field descriptions are the only calibration signal the LLM gets, so tightening scoring behavior is done there (and/or with Pydantic constraints), in `config/schemas.py`.
+**The escalation threshold is written down once**, in `features/support_triage/domain/policy.py`. From there it reaches the prompt (`tasks.yaml` uses a `{escalation_threshold}` placeholder that `CrewAITriagePipeline` fills via `kickoff()` inputs), the severity floor in the `frustration_score` field description, the console gauge, and `GET /api/v1/config`. Never type `7` anywhere else.
 
-**Model split is deliberate**: a cheap fast model for triage (`temperature=0.2`), a stronger reasoning model for resolution (`temperature=0.5`).
+**Escalation stays prompt-encoded.** No Python branch enforces it; changing the *rule* means editing the prose in `tasks.yaml`, changing the *number* means editing `policy.py`. The use case logs a warning when the model's `resolution_status` disagrees with the threshold, but deliberately does not override it.
 
-`tools/jira_tool.py` is a `BaseTool` subclass with a Pydantic `args_schema`. It returns errors as *strings* rather than raising, so the agent sees the failure as tool output and keeps going — preserve that behavior when editing.
+**Field descriptions are prompt, not documentation.** `domain/models.py` binds its models via `output_json=`, so the `Field(description=...)` text is the only calibration signal the LLM gets about what a 4 means versus a 7. Tighten scoring behavior there (and with Pydantic constraints, which are already in place: `ge=1, le=10` and a closed `ResolutionStatus` enum).
 
-`pipeline.extract_result()` has a three-tier fallback (`crew_output.pydantic` → `.json_dict` → `json.loads(.raw)`) because crewAI does not consistently populate the parsed fields. It returns a plain `dict`, which is what both the CLI and the templates consume.
+**Three files stay in sync when changing behavior**: `adapters/crewai_pipeline/config/agents.yaml` (keyed by `@agent` method name), `config/tasks.yaml` (keyed by `@task` method name), and `domain/models.py`.
 
-`knowledge/user_preference.txt` is unused scaffolding from the crewAI project template.
+**Build LLMs inside `@agent` methods, never in the class body.** That is what makes `crew.py` safe to import at module scope.
+
+**`JiraTicketSource.fetch` returns errors as strings rather than raising**, so the agent sees the failure as tool output and keeps going. Preserve that.
+
+**`api/deps.py` imports crewAI lazily**, inside `get_resolve_ticket_use_case()`. Not for correctness any more — purely so the server binds its port immediately and the ~10s crewai/litellm import happens on the background warm-up thread instead (see `api/app.py:lifespan`, and `/health`'s `crew_warm` flag).
+
+**Errors map to status codes in one place**, `api.app._register_exception_handlers`: `InvalidTicketKey` → 422, `ResolutionNotFound` → 404, `PipelineError` → 502. Route handlers do not catch. The web router is the exception — it catches `AppError` itself because it owes the operator rendered HTML, not JSON.
 
 ## Web console
 
 `src/customer_support_crew/web/` — FastAPI, server-rendered Jinja, no build step and **no external assets** (no CDN, no npm); `static/app.css` is the whole stylesheet and the only JavaScript is a dozen inline lines that swap in the "running" state on submit. Keep it that way unless there's a reason not to: it means the console works offline and `uv run serve` is the entire toolchain.
 
-- `POST /resolve` runs the crew **live** on every submit — it never reads cached `output/*.json`. The handler is a **sync** `def` on purpose, so FastAPI runs the ~30s blocking call in its threadpool instead of stalling the event loop.
-- `ESCALATION_THRESHOLD` in `pipeline.py` is **display only** — it draws the threshold on the gauge. The rule that actually escalates is prose in `tasks.yaml`. Change one, change the other.
+- `POST /resolve` runs the crew **live** on every submit — it never reads cached `output/*.json`. The handler is a **sync** `def` on purpose, so FastAPI runs the ~30s blocking call in its threadpool instead of stalling the event loop. Same for the API handlers.
+- The console calls the use case directly, not its own HTTP API. It is a peer of the API, not a layer on top of it.
 - The gauge is the one deliberately expressive element; the rest of the page stays quiet. If you add UI, add it quietly.
+
+## JSON API
+
+`/api/v1`, defined in `features/support_triage/api/routes.py`:
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `POST` | `/api/v1/resolutions` | `{"ticket_id": "..."}`; runs the crew live, ~30s |
+| `GET` | `/api/v1/resolutions/{ticket_id}` | last stored result, 404 if none |
+| `GET` | `/api/v1/config` | threshold, score bounds, legal statuses |
+| `GET` | `/health` | liveness + `crew_warm` |
+
+`api/dto.py` is a *separate* set of models from `domain/models.py`, on purpose: the domain schemas are prompt and will churn as calibration is tuned, while the wire contract should be able to hold still and be versioned. That separation is what makes it safe to point a future SPA at `/api/v1`.
 
 ## Outputs
 
-`output/final_resolution__<TICKET_ID>.json` is written per run and is **committed to the repo** as example data. Running the crew on an existing ticket ID overwrites its file, from the CLI or the web console alike.
+`output/final_resolution__<TICKET_ID>.json` is written per run by `FileResolutionStore` and is **committed to the repo** as example data. Running the crew on an existing ticket ID overwrites its file, from any client. The path is anchored to the repository root, so it does not matter what directory you run from.
+
+## Tests
+
+`tests/` — pytest, no network and no API key. `tests/conftest.py` holds fakes for the three ports; API and console tests build the app with `create_app()` and swap the use case via `dependency_overrides`. Construct `TestClient` *without* `with`, so the lifespan (and its crewAI warm-up import) does not run.
 
 ## Changelog rule
 

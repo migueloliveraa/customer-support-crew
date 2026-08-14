@@ -1,8 +1,8 @@
 {
   "ticket_id": "CREWAISUP-7",
   "frustration_score": 9,
-  "score_rationale": "The phrase 'This is an absolute disaster for our team' indicates a high level of frustration.",
+  "score_rationale": "The phrase 'This is an absolute disaster for our team' indicates a high level of frustration due to critical data loss.",
   "resolution_status": "escalated_to_human",
   "email_response_template": null,
-  "internal_escalation_notes": "Ticket CREWAISUP-7 is being escalated due to a critical data loss incident. The customer reports that 'Project database tables were wiped or are not loading after a recent update.' The frustration_score is 9, with the rationale 'The phrase 'This is an absolute disaster for our team' indicates a high level of frustration.' This indicates a severe impact on the user's operations. Immediate investigation is required to ascertain the cause of the database issue, specifically focusing on the recent update's impact and potential data recovery options. Please prioritize this ticket for urgent review and action."
+  "internal_escalation_notes": "Ticket CREWAISUP-7 is escalated due to a critical data loss event. The customer reports that project database tables are either wiped or not loading after a recent update. This is categorized as 'Critical Data Loss' and has a frustration score of 9, indicating severe impact on the team. Immediate human intervention is required to prevent further data loss and restore service. Recommend highest priority for database recovery and investigation into the update process that led to this state. Check recent deployment logs, database backups, and engage the database administration team."
 }
