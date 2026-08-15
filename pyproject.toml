@@ -38,4 +38,6 @@ type = "crew"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+# "." so `from tests.conftest import ...` resolves under `uv run pytest`, which — unlike
+# `python -m pytest` — does not put the repository root on sys.path.
+pythonpath = ["src", "."]

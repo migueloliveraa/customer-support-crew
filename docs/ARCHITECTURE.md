@@ -1,8 +1,11 @@
 # Architecture
 
-How this system is put together and why. If you are looking for the rules to follow while
-editing it, those are condensed in [`CLAUDE.md`](CLAUDE.md); each one links back to the
-section here that explains it. Open backlog items live in
+How this system is put together and why. Part of the documentation set — start at
+[`README.md`](README.md) if you want the overview first.
+
+If you are looking for the rules to follow while editing it, those are condensed in
+[`CONVENTIONS.md`](CONVENTIONS.md); each one links back to the section here that explains it.
+Prompt and scoring changes are covered in [`CREW.md`](CREW.md). Open backlog items live in
 [`BACKEND_IMPROVEMENTS.md`](BACKEND_IMPROVEMENTS.md).
 
 ## Overview

@@ -1,40 +1,42 @@
-# CustomerSupportCrew Crew
+# Getting started
 
-Welcome to the CustomerSupportCrew Crew project, powered by [crewAI](https://crewai.com). This template is designed to help you set up a multi-agent AI system with ease, leveraging the powerful and flexible framework provided by crewAI. Our goal is to enable your agents to collaborate effectively on complex tasks, maximizing their collective intelligence and capabilities.
+From a clean checkout to a triaged ticket. For what the system *is*, start at
+[README.md](README.md).
 
-## Installation
+## Requirements
 
-Ensure you have Python >=3.10 <3.14 installed on your system. This project uses [UV](https://docs.astral.sh/uv/) for dependency management and package handling, offering a seamless setup and execution experience.
+- Python `>=3.10,<3.14`
+- [`uv`](https://docs.astral.sh/uv/) — dependency management and the console scripts
+- An API key for each model you use (OpenAI and Google by default)
+- Atlassian Jira Cloud credentials, if you want to fetch real tickets
 
-First, if you haven't already, install uv:
+## Install
 
 ```bash
-pip install uv
+pip install uv          # if you do not have it
+crewai install          # lock + install dependencies (uv under the hood)
+uv sync --group dev     # pytest + httpx, for the test suite
 ```
 
-Next, navigate to your project directory and install the dependencies:
+## Configure
 
-(Optional) Lock the dependencies and install them by using the CLI command:
-```bash
-crewai install
+Create a `.env` at the repository root:
+
+```ini
+OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=...
+
+JIRA_SERVER_URL=https://your-org.atlassian.net
+JIRA_EMAIL=you@your-org.com
+JIRA_API_TOKEN=...
 ```
-### Customizing
 
-**Put your model and Jira credentials in `.env`** — see the Environment section of
-[`CLAUDE.md`](CLAUDE.md) for the full list. Everything is read through
-`src/customer_support_crew/core/settings.py`.
+That is the minimum. Every variable, including the optional ones, is documented in
+[CONFIGURATION.md](CONFIGURATION.md).
 
-The crew lives in one vertical slice, `src/customer_support_crew/features/support_triage/`.
-[`ARCHITECTURE.md`](ARCHITECTURE.md) explains how the pieces fit and why; the files you are
-most likely to want are:
+`.env` is gitignored. Never commit it.
 
-- `adapters/crewai_pipeline/config/agents.yaml` — agent roles, goals and backstories
-- `adapters/crewai_pipeline/config/tasks.yaml` — task descriptions and expected outputs
-- `adapters/crewai_pipeline/crew.py` — LLMs, tools and output schemas wired together
-- `domain/models.py` — the structured output schemas (their field descriptions are prompt)
-- `domain/policy.py` — the escalation threshold, defined once and used everywhere
-
-## Running the Project
+## Run
 
 ```bash
 uv run serve                  # web console + JSON API on http://127.0.0.1:8000
@@ -43,26 +45,54 @@ crewai run                    # same, on the default ticket
 uv run pytest                 # the test suite (no network, no API key)
 ```
 
-Each run writes `output/final_resolution__<TICKET_ID>.json` at the repository root,
-whatever directory you started from.
+A run takes **roughly 30 seconds** — two sequential LLM calls plus a Jira fetch.
 
-## Understanding Your Crew
+The first request after `uv run serve` may be slower still: importing crewAI pulls in
+litellm, chromadb, openai and pyvis. A background thread starts that import at startup, and
+`GET /health` reports `crew_warm` so you can tell whether it has finished.
 
-Two agents run sequentially. The triage agent fetches the Jira ticket and scores customer
-frustration 1–10 against the calibration tiers in its output schema; the Tier-2 resolver
-either drafts a customer reply or, at or above the escalation threshold, writes internal
-handover notes. Escalation is prompt-encoded — the rule is prose in `tasks.yaml`, and the
-number it uses comes from `domain/policy.py`.
+## Verify it works
 
-The JSON API (`POST /api/v1/resolutions`), the web console and the CLI are three clients of
-the same use case, `features/support_triage/application/resolve_ticket.py`.
+With the server running:
 
-## Support
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/api/v1/config
+curl -X POST http://127.0.0.1:8000/api/v1/resolutions \
+     -H 'Content-Type: application/json' \
+     -d '{"ticket_id":"CREWAISUP-3"}'
+```
 
-For support, questions, or feedback regarding the CustomerSupportCrew Crew or crewAI.
-- Visit our [documentation](https://docs.crewai.com)
-- Reach out to us through our [GitHub repository](https://github.com/joaomdmoura/crewai)
-- [Join our Discord](https://discord.com/invite/X4JWnZnxPb)
-- [Chat with our docs](https://chatg.pt/DWjSBZn)
+Or open <http://127.0.0.1:8000> and submit a ticket key in the console.
 
-Let's create wonders together with the power and simplicity of crewAI.
+Interactive API docs are at <http://127.0.0.1:8000/docs>.
+
+## Where results go
+
+Each run writes `output/final_resolution__<TICKET_ID>.json`, **anchored to the repository
+root** regardless of which directory you started from. Re-running the same ticket key
+overwrites its file, from any client.
+
+Those files are committed to the repo on purpose — they are the example data used to judge
+whether a change to scoring calibration made things better or worse.
+
+## Not supported
+
+`crewai train`, `crewai replay` and `crewai test` do not work here. The console scripts they
+shell out to were removed, because the `main:train` / `main:replay` / `main:test` functions
+they pointed at never existed.
+
+There is no linter and no build step.
+
+## What to read next
+
+- [CREW.md](CREW.md) — change what the agents do: prompts, scoring calibration, models
+- [CONVENTIONS.md](CONVENTIONS.md) — the rules to follow before editing code
+- [ARCHITECTURE.md](ARCHITECTURE.md) — how the pieces fit, and why
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — when something misbehaves
+
+## crewAI support
+
+- [crewAI documentation](https://docs.crewai.com)
+- [GitHub repository](https://github.com/joaomdmoura/crewai)
+- [Discord](https://discord.com/invite/X4JWnZnxPb)

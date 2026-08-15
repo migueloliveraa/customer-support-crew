@@ -7,6 +7,27 @@ Summarized, human-readable notes on what changed and why. Format follows
 
 ### Changed
 
+- **All documentation moved into `docs/`, with `docs/README.md` as the entry point.** The
+  repository root had accumulated five markdown files with no stated relationship to each
+  other, and a reader had no way to know which to open first. `docs/README.md` now answers
+  that: what the application is, the problem it solves, its capabilities, a high-level
+  architecture sketch, the technology list, a glossary of terms that mean something specific
+  here (severity floor, policy disagreement, three-tier fallback), and an honest list of what
+  is *not* documented. `ARCHITECTURE.md`, `BACKEND_IMPROVEMENTS.md` and `CHANGELOG.md` moved
+  unchanged apart from cross-links; the old root `README.md` became
+  `docs/GETTING_STARTED.md`, since installing and running was all it actually covered.
+
+  Note that the repository root no longer has a `README.md`, so a host such as GitHub will
+  render no landing page — recorded as the first item under *Known documentation gaps*.
+
+- **`CLAUDE.md` reduced to Claude Code instructions and navigation.** It had become a second
+  home for application documentation — the environment variable list, the invariants, the
+  command reference — which meant two files to update for one change, and predictably one of
+  them would drift. Its content moved out rather than being copied: the environment section
+  became `docs/CONFIGURATION.md`, the invariants and the changelog rule became
+  `docs/CONVENTIONS.md`. What remains is a table pointing into `docs/`, the commands an agent
+  should actually run, and a caution that `serve` and `run_crew` spend real tokens.
+
 - **Restructured `src/customer_support_crew/` into a vertical slice.** The layout was a
   crewAI scaffold that had grown a web app, and three of its rules lived in `CLAUDE.md` as
   things a human had to remember rather than as properties of the code: never import
@@ -85,6 +106,28 @@ Summarized, human-readable notes on what changed and why. Format follows
   called out as the top remaining defect now that the schema-level ones are closed.
 
 ### Added
+
+- **Four new documents covering surfaces that had no written home.**
+  `docs/CONFIGURATION.md` (every environment variable, precedence, and why settings are read
+  on call rather than at import); `docs/CONVENTIONS.md` (the invariants, the changelog rule,
+  a documentation-update mapping, and the local code style, since there is no linter to
+  encode it); `docs/API.md` (a client-facing `/api/v1` reference — request and response
+  shapes, the status-code mapping, timeout guidance, and the fact that the API is
+  unauthenticated); and `docs/CREW.md` (the operator's guide to the prompt surface: the
+  scoring tiers, the severity floor, where the escalation rule lives, and a
+  "you want to change X → edit Y" table). `CREW.md` in particular fills a real gap for a
+  crewAI application — the calibration text in `domain/models.py` is prompt, and nothing
+  previously said so outside a docstring.
+
+- **`docs/TROUBLESHOOTING.md`** — symptoms mapped to causes: the slow first request, a `502`
+  meaning schema drift rather than an outage, results appearing at the repository root rather
+  than the CWD, and the failure worth knowing about most, a resolution produced from a Jira
+  error string that the agent could not distinguish from ticket text.
+
+- **`pythonpath = ["src", "."]` in `pyproject.toml`** so `uv run pytest` — the command every
+  document tells you to run — collects. The console script does not put the repository root
+  on `sys.path`, so `from tests.conftest import ...` failed under it while the equivalent
+  `python -m pytest` passed. Same 40 tests either way; only the invocation was fragile.
 
 - **JSON API at `/api/v1`** (`features/support_triage/api/`) — `POST /resolutions` runs the
   crew live, `GET /resolutions/{ticket_id}` replays the stored result, `GET /config` exposes
